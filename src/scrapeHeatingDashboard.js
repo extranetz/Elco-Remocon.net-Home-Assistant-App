@@ -898,6 +898,30 @@ async function expandHeatingCircuitSections(page) {
   if (openHeatingCircuit) await page.waitForTimeout(1000);
 }
 
+async function expandHeatingCircuit2Sections(page) {
+  try {
+    await page.locator('#navMenuItem_BsbUserMenu').first().click({ timeout: 6000 });
+    await page.waitForSelector('#partial-ctrl-plantmenubsb.act-usermenu', { timeout: 15000 });
+  } catch {
+    const openOtherSettings =
+      (await clickTextInFrames(page, /^other\s*settings$/i)) ||
+      (await clickTextInFrames(page, /other\s*settings/i)) ||
+      (await clickSelectorInFrames(page, '#navMenuItem_BsbUserMenu'));
+    if (openOtherSettings) await page.waitForTimeout(1200);
+  }
+  let openHeatingCircuit = false;
+  try {
+    await page.locator('#user_Heating_circuit_2_accordion_lev0 button').first().click({ timeout: 5000 });
+    openHeatingCircuit = true;
+  } catch {
+    openHeatingCircuit =
+      (await clickSelectorInFrames(page, '#user_Heating_circuit_2_accordion_lev0 button')) ||
+      (await clickTextInFrames(page, /^heating\s*circuit\s*2$/i)) ||
+      (await clickTextInFrames(page, /heating\s*circuit\s*2/i));
+  }
+  if (openHeatingCircuit) await page.waitForTimeout(1000);
+}
+
 async function readHeatingCircuitFieldsFromFrames(page) {
   for (const frame of page.frames()) {
     try {
@@ -944,6 +968,54 @@ async function readHeatingCircuitFieldsFromFrames(page) {
         return out;
       });
 
+      if (values && Object.keys(values).length) return values;
+    } catch {
+      // ignore frame evaluation errors
+    }
+  }
+  return {};
+}
+
+async function readHeatingCircuit2FieldsFromFrames(page) {
+  for (const frame of page.frames()) {
+    try {
+      const values = await frame.evaluate(() => {
+        const cleanText = (text) =>
+          String(text || '')
+            .replace(/\u00a0/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        const panel = document.querySelector('#user_Heating_circuit_2_accordion_lev0_dataPoints');
+        if (!panel) return {};
+        const out = {};
+        const fieldBlocks = Array.from(panel.querySelectorAll('.form-floating'));
+        for (const block of fieldBlocks) {
+          const label = cleanText(block.querySelector('label')?.textContent || '');
+          const codeMatch = label.match(/^(\d{3,4})\s*-/);
+          if (!codeMatch) continue;
+          const code = codeMatch[1];
+          const select = block.querySelector('select:not([id$="_osv"])');
+          const input = block.querySelector(
+            'input.form-control:not(.gfm-osv-placeholder):not([id$="_osv"]):not([id$="_osv_checkbox"]), textarea'
+          );
+          const selected = select?.options?.[select.selectedIndex];
+          const value = cleanText(
+            selected?.textContent ||
+              select?.value ||
+              input?.value ||
+              input?.getAttribute('value') ||
+              input?.getAttribute('aria-valuenow')
+          );
+          if (!value) continue;
+          if (code === '1000') out.heating_circuit2_1000_operating_mode = value;
+          if (code === '1010') out.heating_circuit2_1010_comfort_setpoint = value;
+          if (code === '1012') out.heating_circuit2_1012_reduced_setpoint = value;
+          if (code === '1014') out.heating_circuit2_1014_frost_protection_setpoint = value;
+          if (code === '1020') out.heating_circuit2_1020_heating_curve_slope = value;
+          if (code === '1030') out.heating_circuit2_1030_summer_winter_heating_limit = value;
+        }
+        return out;
+      });
       if (values && Object.keys(values).length) return values;
     } catch {
       // ignore frame evaluation errors
@@ -1019,6 +1091,71 @@ function parseHeatingCircuitMetrics(values) {
   return metrics;
 }
 
+function parseHeatingCircuit2Metrics(values) {
+  const metrics = [];
+  const m1000 = clean(values.heating_circuit2_1000_operating_mode || '');
+  const m1010 = toNumber(values.heating_circuit2_1010_comfort_setpoint);
+  const m1012 = toNumber(values.heating_circuit2_1012_reduced_setpoint);
+  const m1014 = toNumber(values.heating_circuit2_1014_frost_protection_setpoint);
+  const m1020 = toNumber(values.heating_circuit2_1020_heating_curve_slope);
+  const m1030 = toNumber(values.heating_circuit2_1030_summer_winter_heating_limit);
+  if (m1000 && m1000 !== '-' && m1000 !== '- -') {
+    metrics.push({
+      key: 'heating_circuit2_1000_operating_mode',
+      label: 'Heating Circuit 2 1000 Operating Mode',
+      value: m1000,
+      numberValue: null,
+      unit: null
+    });
+  }
+  if (m1010 !== null && m1010 > 3) {
+    metrics.push({
+      key: 'heating_circuit2_1010_comfort_setpoint',
+      label: 'Heating Circuit 2 1010 Comfort Setpoint',
+      value: `${m1010} °C`,
+      numberValue: m1010,
+      unit: '°C'
+    });
+  }
+  if (m1012 !== null && m1012 > 3) {
+    metrics.push({
+      key: 'heating_circuit2_1012_reduced_setpoint',
+      label: 'Heating Circuit 2 1012 Reduced Setpoint',
+      value: `${m1012} °C`,
+      numberValue: m1012,
+      unit: '°C'
+    });
+  }
+  if (m1014 !== null && m1014 > 3) {
+    metrics.push({
+      key: 'heating_circuit2_1014_frost_protection_setpoint',
+      label: 'Heating Circuit 2 1014 Frost Protection Setpoint',
+      value: `${m1014} °C`,
+      numberValue: m1014,
+      unit: '°C'
+    });
+  }
+  if (m1020 !== null && m1020 > 0) {
+    metrics.push({
+      key: 'heating_circuit2_1020_heating_curve_slope',
+      label: 'Heating Circuit 2 1020 Heating Curve Slope',
+      value: String(m1020),
+      numberValue: m1020,
+      unit: null
+    });
+  }
+  if (m1030 !== null && m1030 > 3) {
+    metrics.push({
+      key: 'heating_circuit2_1030_summer_winter_heating_limit',
+      label: 'Heating Circuit 2 1030 Summer/Winter Heating Limit',
+      value: `${m1030} °C`,
+      numberValue: m1030,
+      unit: '°C'
+    });
+  }
+  return metrics;
+}
+
 async function extractHeatingCircuitMetrics(page) {
   try {
     await expandHeatingCircuitSections(page);
@@ -1032,6 +1169,24 @@ async function extractHeatingCircuitMetrics(page) {
       await page.waitForTimeout(500);
     }
     return parsed.length ? parsed : parseHeatingCircuitMetrics(values);
+  } catch {
+    return [];
+  }
+}
+
+async function extractHeatingCircuit2Metrics(page) {
+  try {
+    await expandHeatingCircuit2Sections(page);
+    const started = Date.now();
+    let values = {};
+    let parsed = [];
+    while (Date.now() - started < 12000) {
+      values = await readHeatingCircuit2FieldsFromFrames(page);
+      parsed = parseHeatingCircuit2Metrics(values);
+      if (parsed.length >= 6) break;
+      await page.waitForTimeout(500);
+    }
+    return parsed.length ? parsed : parseHeatingCircuit2Metrics(values);
   } catch {
     return [];
   }
@@ -1280,6 +1435,11 @@ async function scrapeHeating() {
 
   const heatingCircuitMetrics = await extractHeatingCircuitMetrics(page);
   for (const metric of heatingCircuitMetrics) {
+    upsertMetric(selected, metric);
+  }
+
+  const heatingCircuit2Metrics = await extractHeatingCircuit2Metrics(page);
+  for (const metric of heatingCircuit2Metrics) {
     upsertMetric(selected, metric);
   }
 
