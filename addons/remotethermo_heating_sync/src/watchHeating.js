@@ -91,7 +91,7 @@ async function main() {
     `[${new Date().toISOString()}] Heating watch started. Interval ${WATCH_INTERVAL_MS}ms, error backoff ${WATCH_ERROR_BACKOFF_MS}ms.`
   );
 
-  let snapshot = loadLastSnapshot();
+let snapshot = null;
 
   while (true) {
     try {
