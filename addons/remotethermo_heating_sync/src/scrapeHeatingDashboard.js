@@ -1394,7 +1394,6 @@ async function scrapeHeating() {
   const gatewayId = gatewayIdFromUrl(HEATING_DASHBOARD_URL) || gatewayIdFromUrl(pageUrl);
   const apiPlantData = await fetchPlantHomeBsbData(context, gatewayId);
   const apiCircuit2Data = await fetchHeatingCircuit2Data(context, gatewayId);
-  console.log(`[DEBUG] Circuit2 API returned: ${apiCircuit2Data ? apiCircuit2Data.length + ' points' : 'null'}`);
   
   let snapshot = await waitForStableData(page);
   let vmData = vmHotWater;
@@ -1503,8 +1502,6 @@ async function scrapeHeating() {
   }
 
  const heatingCircuit2Metrics = parseHeatingCircuit2ApiData(apiCircuit2Data);
-  console.log(`[DEBUG] Circuit2 parsed metrics: ${heatingCircuit2Metrics.length}`);
-  console.log(`[DEBUG] Circuit2 data: ${JSON.stringify(apiCircuit2Data)}`);
   for (const metric of heatingCircuit2Metrics) {
     upsertMetric(selected, metric);
   }
