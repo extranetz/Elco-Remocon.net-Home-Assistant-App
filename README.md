@@ -22,7 +22,7 @@ The add-on logs into ELCO Remocon.net, reads heating values from your plant dash
 1. Open `Settings -> Apps`.
 2. Open app store repository management.
 3. Add repository URL:
-   - `https://github.com/thomasgregg/Elco-Remocon.net-Home-Assistant-App`
+   - `https://github.com/extranetz/Elco-Remocon.net-Home-Assistant-App`
 4. Install:
    - `ELCO Remocon.net Heating MQTT Sync`
 
