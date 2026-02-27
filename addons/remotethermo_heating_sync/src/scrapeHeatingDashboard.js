@@ -1500,6 +1500,8 @@ async function scrapeHeating() {
   }
 
  const heatingCircuit2Metrics = parseHeatingCircuit2ApiData(apiCircuit2Data);
+  console.log(`[DEBUG] Circuit2 parsed metrics: ${heatingCircuit2Metrics.length}`);
+  console.log(`[DEBUG] Circuit2 data: ${JSON.stringify(apiCircuit2Data)}`);
   for (const metric of heatingCircuit2Metrics) {
     upsertMetric(selected, metric);
   }
