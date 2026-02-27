@@ -305,13 +305,16 @@ function parseHeatingCircuit2ApiData(dataPoints) {
     const mapping = addressMap[point.address];
     if (!mapping || point.anyError) continue;
 
+    const num = typeof point.valueAsNumber === 'object'
+      ? point.valueAsNumber?.parsedValue
+      : point.valueAsNumber;
+
     if (mapping.isEnum) {
-      const enumVal = point.enumOptions?.find(o => o.value === point.valueAsNumber?.parsedValue);
+      const enumVal = point.enumOptions?.find(o => o.value === num);
       if (enumVal) {
         metrics.push({ key: mapping.key, label: mapping.label, value: enumVal.text, numberValue: null, unit: null });
       }
     } else {
-      const num = point.valueAsNumber?.parsedValue;
       if (num !== null && num !== undefined) {
         metrics.push({
           key: mapping.key,
@@ -1391,7 +1394,6 @@ async function scrapeHeating() {
   const gatewayId = gatewayIdFromUrl(HEATING_DASHBOARD_URL) || gatewayIdFromUrl(pageUrl);
   const apiPlantData = await fetchPlantHomeBsbData(context, gatewayId);
   const apiCircuit2Data = await fetchHeatingCircuit2Data(context, gatewayId);
-  console.log(`[DEBUG] Circuit2 API returned: ${apiCircuit2Data ? apiCircuit2Data.length + ' points' : 'null'}`);
   
   let snapshot = await waitForStableData(page);
   let vmData = vmHotWater;
