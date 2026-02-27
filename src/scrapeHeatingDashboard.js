@@ -268,6 +268,65 @@ async function fetchPlantHomeBsbData(context, gatewayId) {
   }
 }
 
+async function fetchHeatingCircuit2Data(context, gatewayId) {
+  if (!gatewayId) return null;
+  const addresses = '3016052,3016078,3016080,3016082,3016101,3016182,3016189';
+  const endpoint = `https://www.remocon-net.remotethermo.com/R2/PlantMenuBsb/ReadDataPoints/${gatewayId}?addresses=${addresses}&rnd=${Date.now()}`;
+  try {
+    const response = await context.request.get(endpoint, {
+      headers: {
+        'ajax-request': 'json',
+        'x-requested-with': 'XMLHttpRequest'
+      }
+    });
+    if (!response.ok()) return null;
+    const json = await response.json();
+    return Array.isArray(json?.data) ? json.data : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseHeatingCircuit2ApiData(dataPoints) {
+  if (!Array.isArray(dataPoints)) return [];
+  const metrics = [];
+
+  const addressMap = {
+    3016052: { key: 'heating_circuit2_1000_operating_mode', label: 'Heating Circuit 2 Operating Mode', isEnum: true },
+    3016078: { key: 'heating_circuit2_1010_comfort_setpoint', label: 'Heating Circuit 2 Comfort Setpoint', unit: '°C' },
+    3016080: { key: 'heating_circuit2_1012_reduced_setpoint', label: 'Heating Circuit 2 Reduced Setpoint', unit: '°C' },
+    3016082: { key: 'heating_circuit2_1014_frost_protection_setpoint', label: 'Heating Circuit 2 Frost Protection Setpoint', unit: '°C' },
+    3016101: { key: 'heating_circuit2_max_temperature', label: 'Heating Circuit 2 Max Temperature', unit: '°C' },
+    3016182: { key: 'heating_circuit2_1020_heating_curve_slope', label: 'Heating Circuit 2 Heating Curve Slope', unit: null },
+    3016189: { key: 'heating_circuit2_1030_summer_winter_heating_limit', label: 'Heating Circuit 2 Summer/Winter Heating Limit', unit: '°C' }
+  };
+
+  for (const point of dataPoints) {
+    const mapping = addressMap[point.address];
+    if (!mapping || point.anyError) continue;
+
+    if (mapping.isEnum) {
+      const enumVal = point.enumOptions?.find(o => o.value === point.valueAsNumber?.parsedValue);
+      if (enumVal) {
+        metrics.push({ key: mapping.key, label: mapping.label, value: enumVal.text, numberValue: null, unit: null });
+      }
+    } else {
+      const num = point.valueAsNumber?.parsedValue;
+      if (num !== null && num !== undefined) {
+        metrics.push({
+          key: mapping.key,
+          label: mapping.label,
+          value: mapping.unit ? `${num} ${mapping.unit}` : String(num),
+          numberValue: num,
+          unit: mapping.unit || null
+        });
+      }
+    }
+  }
+
+  return metrics;
+}
+
 async function refreshAuthStateFromChromeCdp() {
   const endpoint = process.env.CHROME_CDP_URL || 'http://127.0.0.1:9222';
   const cdpBrowser = await chromium.connectOverCDP(endpoint);
@@ -1331,7 +1390,8 @@ async function scrapeHeating() {
 
   const gatewayId = gatewayIdFromUrl(HEATING_DASHBOARD_URL) || gatewayIdFromUrl(pageUrl);
   const apiPlantData = await fetchPlantHomeBsbData(context, gatewayId);
-
+  const apiCircuit2Data = await fetchHeatingCircuit2Data(context, gatewayId);
+  
   let snapshot = await waitForStableData(page);
   let vmData = vmHotWater;
   let { rawMetrics, selected } = buildSelectedMetrics(snapshot, vmData);
@@ -1438,7 +1498,7 @@ async function scrapeHeating() {
     upsertMetric(selected, metric);
   }
 
-  const heatingCircuit2Metrics = await extractHeatingCircuit2Metrics(page);
+ const heatingCircuit2Metrics = parseHeatingCircuit2ApiData(apiCircuit2Data);
   for (const metric of heatingCircuit2Metrics) {
     upsertMetric(selected, metric);
   }
