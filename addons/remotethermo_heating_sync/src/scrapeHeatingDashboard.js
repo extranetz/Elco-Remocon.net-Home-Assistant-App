@@ -1480,6 +1480,7 @@ async function scrapeHeating() {
   }
 
   if (typeof apiPlantData?.heatPumpOn === 'boolean') {
+    console.log(`[DEBUG] heatPumpOn value: ${apiPlantData.heatPumpOn}, type: ${typeof apiPlantData.heatPumpOn}`);
     upsertMetric(selected, {
       key: 'heating_active',
       label: 'Heating Active',
