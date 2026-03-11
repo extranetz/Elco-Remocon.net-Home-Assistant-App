@@ -1478,6 +1478,16 @@ async function scrapeHeating() {
     }
   }
 
+  if (typeof apiPlantData?.heatPumpOn === 'boolean') {
+    upsertMetric(selected, {
+      key: 'heating_active',
+      label: 'Heating Active',
+      value: apiPlantData.heatPumpOn,
+      numberValue: null,
+      unit: null
+    });
+  }
+
   // Last-resort fallback to cache if API + DOM still do not provide valid hot-water values.
   if (!hotWaterLooksValid(selected)) {
     const cached = loadLastGoodHotWater();
