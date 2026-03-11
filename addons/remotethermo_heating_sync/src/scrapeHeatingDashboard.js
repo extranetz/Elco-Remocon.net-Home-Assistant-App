@@ -1393,7 +1393,6 @@ async function scrapeHeating() {
 
   const gatewayId = gatewayIdFromUrl(HEATING_DASHBOARD_URL) || gatewayIdFromUrl(pageUrl);
   const apiPlantData = await fetchPlantHomeBsbData(context, gatewayId);
-  console.log(`[DEBUG] plantData: ${JSON.stringify(apiPlantData)}`);
   const apiCircuit2Data = await fetchHeatingCircuit2Data(context, gatewayId);
   
   let snapshot = await waitForStableData(page);
@@ -1480,7 +1479,6 @@ async function scrapeHeating() {
   }
 
   if (typeof apiPlantData?.heatPumpOn === 'boolean') {
-    console.log(`[DEBUG] heatPumpOn value: ${apiPlantData.heatPumpOn}, type: ${typeof apiPlantData.heatPumpOn}`);
     upsertMetric(selected, {
       key: 'heating_active',
       label: 'Heating Active',
