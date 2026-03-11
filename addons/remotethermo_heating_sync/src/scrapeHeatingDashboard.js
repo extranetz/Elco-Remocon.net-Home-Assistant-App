@@ -1393,6 +1393,7 @@ async function scrapeHeating() {
 
   const gatewayId = gatewayIdFromUrl(HEATING_DASHBOARD_URL) || gatewayIdFromUrl(pageUrl);
   const apiPlantData = await fetchPlantHomeBsbData(context, gatewayId);
+  console.log(`[DEBUG] plantData: ${JSON.stringify(apiPlantData)}`);
   const apiCircuit2Data = await fetchHeatingCircuit2Data(context, gatewayId);
   
   let snapshot = await waitForStableData(page);
